@@ -28,4 +28,6 @@ Messenger -> Set up
 + Add Product
 Messenger -> Settings -> Token Generation -> Select page -> Your new fancy page
 
+Webhooks -> Select page -> Subscribe
+
 ## Google Vision API
