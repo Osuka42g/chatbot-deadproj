@@ -1,12 +1,11 @@
 package main
 
-type fbResponse struct {
+type standardResponse struct {
 	Message string `json:"message"`
 }
 
 type fbRequest struct {
-	Object string           `json:"object"`
-	Entry  []fbRequestEntry `json:"entry"`
+	Entry []fbRequestEntry `json:"entry"`
 }
 
 type fbRequestEntry struct {
@@ -28,4 +27,19 @@ type fbRequestAttachment struct {
 	Payload struct {
 		URL string `json:"url"`
 	} `json:"payload"`
+}
+
+type fbSenderInformation struct {
+	id      string
+	kind    string // Alias for `type`, reserved world in go
+	payload string
+}
+
+type fbResponse struct {
+	Recipient struct {
+		ID string `json:"id"`
+	} `json:"recipient"`
+	Message struct {
+		Text string `json:"text"`
+	} `json:"message"`
 }
