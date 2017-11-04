@@ -7,13 +7,12 @@ import (
 )
 
 const (
-	accessToken        = "EAAI5it0VDL4BACMBw6P2D15oICti2VIl8WXFZB5B5P7CkkXom31dS7vGftu5uzWnRMqqPTj3frBkMZCuljZAvKeSievQnWYEdzXklOK4s4HvhsS9bD9jyvW3qRwzEf8RR4Iux4eOLoPjRtm4XxoQ7zI4HXH6J0ruw2z2KiYSwZDZD"
+	accessToken        = ""
 	verificationToken  = "AwesomeYouMadeAGreatJob"
 	middlewareEndpoint = "" // We still don't have, but we will
 )
 
 func main() {
-	fmt.Println("Printeo")
 	http.HandleFunc("/messenger", getMessage)
 	http.ListenAndServe(":8001", nil)
 }
