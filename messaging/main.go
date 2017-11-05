@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	accessToken      = "EAAI5it0VDL4BACMBw6P2D15oICti2VIl8WXFZB5B5P7CkkXom31dS7vGftu5uzWnRMqqPTj3frBkMZCuljZAvKeSievQnWYEdzXklOK4s4HvhsS9bD9jyvW3qRwzEf8RR4Iux4eOLoPjRtm4XxoQ7zI4HXH6J0ruw2z2KiYSwZDZD"
+	accessToken      = ""
 	facebookEndpoint = "https://graph.facebook.com/v2.6/me/messages?access_token=" + accessToken
 
 	verificationToken  = "AwesomeYouMadeAGreatJob"
