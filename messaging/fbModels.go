@@ -35,11 +35,18 @@ type fbSenderInformation struct {
 	payload string
 }
 
-type fbResponse struct {
+type fbSimpleText struct {
 	Recipient struct {
 		ID string `json:"id"`
 	} `json:"recipient"`
 	Message struct {
 		Text string `json:"text"`
 	} `json:"message"`
+}
+
+type fbTyping struct {
+	Recipient struct {
+		ID string `json:"id"`
+	} `json:"recipient"`
+	SenderAction string `json:"sender_action"`
 }

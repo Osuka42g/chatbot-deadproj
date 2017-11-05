@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 const (
-	accessToken      = ""
+	accessToken      = "EAAI5it0VDL4BACMBw6P2D15oICti2VIl8WXFZB5B5P7CkkXom31dS7vGftu5uzWnRMqqPTj3frBkMZCuljZAvKeSievQnWYEdzXklOK4s4HvhsS9bD9jyvW3qRwzEf8RR4Iux4eOLoPjRtm4XxoQ7zI4HXH6J0ruw2z2KiYSwZDZD"
 	facebookEndpoint = "https://graph.facebook.com/v2.6/me/messages?access_token=" + accessToken
 
 	verificationToken  = "AwesomeYouMadeAGreatJob"
@@ -32,29 +33,50 @@ func getMessage(w http.ResponseWriter, r *http.Request) {
 		s := fbSenderInformation{}
 		s.id, s.kind, s.payload = parseFBRequest(r)
 		if s.kind != "invalid" {
-			sendFBResponse(s)
+			sendFBPayload(composeFBTyping(s, true))
+			time.Sleep(2 * time.Second) // Sleep 2 seconds to be more natural
+			if sendFBPayload(composeFBMessage(s)) != nil {
+				panic("Could not send the payload")
+			} else {
+				sendFBPayload(composeFBTyping(s, false))
+			}
 		}
 		return
 	default:
-		sendBadRequest(w, "Method not supported")
+		respondBadRequest(w, "Method not supported")
 	}
 }
 
-func sendFBResponse(rs fbSenderInformation) {
-	res := fbResponse{}
+func composeFBMessage(rs fbSenderInformation) []byte {
+	res := fbSimpleText{}
 	res.Recipient.ID = rs.id
 	res.Message.Text = rs.payload
-
 	payload, _ := json.Marshal(res)
-	req, err := http.NewRequest("POST", facebookEndpoint, bytes.NewBuffer(payload))
+	return payload
+}
+
+func composeFBTyping(rs fbSenderInformation, mode bool) []byte {
+	res := fbTyping{}
+	res.Recipient.ID = rs.id
+	res.SenderAction = "typing_off"
+	if mode {
+		res.SenderAction = "typing_on"
+	}
+	payload, _ := json.Marshal(res)
+	return payload
+}
+
+func sendFBPayload(p []byte) error {
+	req, err := http.NewRequest("POST", facebookEndpoint, bytes.NewBuffer(p))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	defer resp.Body.Close()
+	return nil
 }
 
 func parseFBRequest(r *http.Request) (string, string, string) {
@@ -87,10 +109,10 @@ func verifyFacebookChallenge(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, q["hub.challenge"][0])
 		return
 	}
-	sendBadRequest(w, "Invalid verification token")
+	respondBadRequest(w, "Invalid verification token")
 }
 
-func sendBadRequest(w http.ResponseWriter, m string) {
+func respondBadRequest(w http.ResponseWriter, m string) {
 	w.WriteHeader(http.StatusBadRequest)
 	res := standardResponse{m}
 	json.NewEncoder(w).Encode(res)
