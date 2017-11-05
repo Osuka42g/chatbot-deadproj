@@ -13,37 +13,50 @@ const (
 	facebookEndpoint = "https://graph.facebook.com/v2.6/me/messages?access_token=" + accessToken
 
 	verificationToken  = "AwesomeYouMadeAGreatJob"
-	middlewareEndpoint = "" // We still don't have, but we will
+	middlewareEndpoint = "http://localhost:8002/middleware" // We still don't have, but we will
 )
 
 func main() {
-	http.HandleFunc("/messenger", getMessage)
+	http.HandleFunc("/messenger", routeMessage)
 	http.ListenAndServe(":8001", nil)
 }
 
-func getMessage(w http.ResponseWriter, r *http.Request) {
+func routeMessage(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	switch r.Method {
-	// The only GET method facebook will send us, is for the verification challenge.
-	case "GET":
+	case "GET": // The only GET method facebook will send us, is for the verification challenge.
 		verifyFacebookChallenge(w, r)
 	case "POST":
-		json.NewEncoder(w).Encode(standardResponse{"ok"})
-		s := fbSenderInformation{}
-		s.id, s.kind, s.payload = parseFBRequest(r)
-		if s.kind != "invalid" {
-			sendFBPayload(composeFBTyping(s, true))
-			time.Sleep(2 * time.Second) // Sleep 2 seconds to be more natural
-			if sendFBPayload(composeFBMessage(s)) != nil {
-				panic("Could not send the payload")
-			} else {
-				sendFBPayload(composeFBTyping(s, false))
-			}
-		}
-		return
+		handleFBPostRequest(w, r)
 	default:
 		respondBadRequest(w, "Method not supported")
+	}
+}
+
+func handleFBPostRequest(w http.ResponseWriter, r *http.Request) {
+	json.NewEncoder(w).Encode(standardResponse{"ok"})
+	ss := fbSenderInformation{}
+	ss.id, ss.kind, ss.payload = parseFBRequest(r)
+
+	if ss.kind == "invalid" {
+		return
+	}
+	sendFBPayload(composeFBTyping(ss, true))
+	time.Sleep(2 * time.Second) // Sleep 2 seconds to be more natural
+
+	payload, _ := json.Marshal(ss)
+	mw, err := fetchFromMiddleware(payload)
+	if err != nil {
+		panic(err)
+	}
+	ss.payload = mw
+
+	err = sendFBPayload(composeFBMessage(ss))
+	if err != nil {
+		panic(err)
+	} else {
+		sendFBPayload(composeFBTyping(ss, false))
 	}
 }
 
@@ -79,6 +92,22 @@ func sendFBPayload(p []byte) error {
 	return nil
 }
 
+func fetchFromMiddleware(p []byte) (response string, err error) {
+	response = ""
+	err = nil
+	req, err := http.NewRequest("POST", middlewareEndpoint, bytes.NewBuffer(p))
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	fmt.Println(resp.Body)
+	return "", nil
+}
+
 func parseFBRequest(r *http.Request) (string, string, string) {
 	fb := fbRequest{}
 	decoder := json.NewDecoder(r.Body)
@@ -88,16 +117,16 @@ func parseFBRequest(r *http.Request) (string, string, string) {
 	}
 	defer r.Body.Close()
 	sender := fb.Entry[0].Messaging[0].Sender.SenderID
-	kind := ""
+	kind := "invalid"
 	payload := ""
-	if fb.Entry[0].Messaging[0].Message.Text != "" {
+	message := fb.Entry[0].Messaging[0].Message
+
+	if message.Text != "" {
 		kind = "text"
-		payload = fb.Entry[0].Messaging[0].Message.Text
-	} else if len(fb.Entry[0].Messaging[0].Message.Attachment) > 0 {
-		kind = fb.Entry[0].Messaging[0].Message.Attachment[0].Type
-		payload = fb.Entry[0].Messaging[0].Message.Attachment[0].Payload.URL
-	} else {
-		kind = "invalid"
+		payload = message.Text
+	} else if len(message.Attachment) > 0 {
+		kind = message.Attachment[0].Type
+		payload = message.Attachment[0].Payload.URL
 	}
 	return sender, kind, payload
 }
