@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,9 +18,8 @@ const (
 )
 
 type msgRequest struct {
-	id      string `json:"id"`
-	kind    string `json:"kind"`
-	payload string `json:"payload"`
+	Kind    string `json:"kind"`
+	Payload string `json:"payload"`
 }
 
 func main() {
@@ -28,16 +28,63 @@ func main() {
 }
 
 func request(w http.ResponseWriter, r *http.Request) {
-
-	s1 := "http://www.gcfa.com/assets/images/theme/home-ferret-trio-01.jpg"
-
-	if !isValidURL(s1) {
+	w.Header().Set("Content-Type", "application/json")
+	if r.Method != "POST" {
+		fmt.Fprint(w, "Method not supported")
 		return
 	}
-	_, err := saveImage(s1)
+
+	ss := msgRequest{}
+	ss = parseMsgRequest(r)
+
+	switch ss.Kind {
+	case "image":
+		// res, err := examineImage(ss.Payload)
+		ss.Payload = "mm that's not a ferret!"
+	case "text":
+		if "help" == ss.Payload {
+			ss.Payload = "Just send me the ferrets!"
+		} else {
+			ss.Payload = randomInvalid()
+		}
+	}
+
+	ss.Kind = "text"
+	json.NewEncoder(w).Encode(ss)
+}
+
+func randomInvalid() string {
+	messages := []string{
+		"the ferrets!",
+		"show me the ferrets!!",
+		"aaaarrrrrrrrgg",
+	}
+	return messages[0]
+}
+
+func examineImage(i string) (result string, err error) {
+	result = ""
+	err = nil
+	if !isValidURL(i) {
+		return
+	}
+	_, err = saveImage(i)
 	if err != nil {
 		panic(err)
 	}
+
+	return
+}
+
+func parseMsgRequest(r *http.Request) msgRequest {
+	msg := msgRequest{}
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&msg)
+	if err != nil {
+		panic(err)
+	}
+	defer r.Body.Close()
+	return msg
 }
 
 func saveImage(URL string) (filepath string, err error) {
@@ -67,7 +114,7 @@ func isValidURL(URL string) bool {
 }
 
 func createDownloadsDir() {
-	dir := "donwloads"
+	dir := "downloads"
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		os.MkdirAll(dir, os.ModePerm)
 	}
