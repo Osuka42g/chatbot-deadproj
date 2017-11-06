@@ -57,14 +57,9 @@ func sendToGV() {
 		MaxResults: 10,
 	}
 
-	featurer := &vision.Feature{
-		Type:       "LOGO_DETECTION",
-		MaxResults: 10,
-	}
-
 	req := &vision.AnnotateImageRequest{
 		Image:    img,
-		Features: []*vision.Feature{feature, featurer},
+		Features: []*vision.Feature{feature},
 	}
 
 	batch := &vision.BatchAnnotateImagesRequest{
