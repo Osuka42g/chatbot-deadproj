@@ -13,7 +13,7 @@ const (
 	facebookEndpoint = "https://graph.facebook.com/v2.6/me/messages?access_token=" + accessToken
 
 	verificationToken  = "AwesomeYouMadeAGreatJob"
-	middlewareEndpoint = "http://localhost:8002/middleware" // We still don't have, but we will
+	middlewareEndpoint = "https://e0f8f652.ngrok.io/middleware" // We still don't have, but we will
 )
 
 func main() {
@@ -37,9 +37,9 @@ func routeMessage(w http.ResponseWriter, r *http.Request) {
 func handleFBPostRequest(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(standardResponse{"ok"})
 	ss := fbSenderInformation{}
-	ss.id, ss.kind, ss.payload = parseFBRequest(r)
+	ss.Id, ss.Kind, ss.Payload = parseFBRequest(r)
 
-	if ss.kind == "invalid" {
+	if ss.Kind == "invalid" {
 		return
 	}
 	sendFBPayload(composeFBTyping(ss, true))
@@ -50,7 +50,7 @@ func handleFBPostRequest(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	ss.payload = mw
+	ss.Payload = mw
 
 	err = sendFBPayload(composeFBMessage(ss))
 	if err != nil {
@@ -62,15 +62,15 @@ func handleFBPostRequest(w http.ResponseWriter, r *http.Request) {
 
 func composeFBMessage(rs fbSenderInformation) []byte {
 	res := fbSimpleText{}
-	res.Recipient.ID = rs.id
-	res.Message.Text = rs.payload
+	res.Recipient.ID = rs.Id
+	res.Message.Text = rs.Payload
 	payload, _ := json.Marshal(res)
 	return payload
 }
 
 func composeFBTyping(rs fbSenderInformation, mode bool) []byte {
 	res := fbTyping{}
-	res.Recipient.ID = rs.id
+	res.Recipient.ID = rs.Id
 	res.SenderAction = "typing_off"
 	if mode {
 		res.SenderAction = "typing_on"
@@ -104,8 +104,12 @@ func fetchFromMiddleware(p []byte) (response string, err error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	fmt.Println(resp.Body)
-	return "", nil
+	msg := fbSenderInformation{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(&msg)
+
+	response = msg.Payload
+	return
 }
 
 func parseFBRequest(r *http.Request) (string, string, string) {

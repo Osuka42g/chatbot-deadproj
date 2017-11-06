@@ -30,9 +30,9 @@ type fbRequestAttachment struct {
 }
 
 type fbSenderInformation struct {
-	id      string `json:"id"`
-	kind    string `json:"kind"` // Alias for `type`, reserved world in go
-	payload string `json:"payload"`
+	Id      string `json:"id"`
+	Kind    string `json:"kind"` // Alias for `type`, reserved world in go
+	Payload string `json:"payload"`
 }
 
 type fbSimpleText struct {
